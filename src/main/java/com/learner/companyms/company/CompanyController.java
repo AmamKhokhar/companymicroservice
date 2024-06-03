@@ -1,5 +1,7 @@
 package com.learner.companyms.company;
 
+import com.learner.companyms.company.dto.ReviewMessage;
+import jakarta.ws.rs.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,10 +11,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/company")
 public class CompanyController {
+    private final CompanyRepository companyRepository;
     CompanyService companyService;
 
-    public CompanyController(CompanyService companyService) {
+    public CompanyController(CompanyService companyService, CompanyRepository companyRepository) {
         this.companyService = companyService;
+        this.companyRepository = companyRepository;
     }
 
     @GetMapping
@@ -49,4 +53,5 @@ public class CompanyController {
             return new ResponseEntity<>("Company Deleted Successfully",HttpStatus.OK);
         return new ResponseEntity<>("Company not found",HttpStatus.NOT_FOUND);
     }
+
 }
