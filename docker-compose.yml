@@ -1,9 +1,10 @@
+version: '3.7'
 services:
   postgres:
-    container_name: postgres-container
+    container_name: postgres
     image: postgres
     volumes:
-      - /data/postgres
+      - postgres:/data/postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: amam
@@ -21,7 +22,7 @@ services:
     networks:
       - postgres
   pgadmin:
-    container_name: pgadmin-container
+    container_name: pgadmin
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
@@ -34,6 +35,91 @@ services:
       - pgadmin:/var/lib/pgadmin
     networks:
       - postgres
+  config-server-ms:
+    image: amamkhokhar345/config-server-ms:latest
+    container_name: config-server-ms
+    ports:
+      - "8080:8080"
+    depends_on:
+      - servicereg
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+  servicereg:
+    image: amamkhokhar345/service-reg-ms:latest
+    container_name: servicereg
+    ports:
+      - "8761:8761"
+    depends_on:
+      - rabbitmq
+      - postgres
+      - zipkin
+      - pgadmin
+    networks:
+      - microservice-network
+      - postgres
+
+  companyms:
+    image: amamkhokhar345/companyms:latest
+    container_name: company
+    ports:
+      - "8082:8082"
+    depends_on:
+      - servicereg
+      - config-server-ms
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+
+  jobms:
+    image: amamkhokhar345/jobms:latest
+    container_name: job
+    ports:
+      - "8081:8081"
+    depends_on:
+      - servicereg
+      - config-server-ms
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://servicereg:8761/eureka/
+
+
+  reviewms:
+    image: amamkhokhar345/reviewms:latest
+    container_name: review
+    ports:
+      - "8083:8083"
+    depends_on:
+      - servicereg
+      - config-server-ms
+    networks:
+      - microservice-network
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+
+  gateway-ms:
+    image: amamkhokhar345/gateway-ms:latest
+    container_name: gateway
+    ports:
+      - "8084:8084"
+    depends_on:
+      - servicereg
+    networks:
+      - postgres
+      - microservice-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -44,6 +130,8 @@ services:
       - postgres
 networks:
   postgres:
+    driver: bridge
+  microservice-network:
     driver: bridge
 volumes:
   postgres:
